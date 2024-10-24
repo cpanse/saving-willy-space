@@ -1,0 +1,4 @@
+transformers
+streamlit
+huggingface_hub
+torch
