@@ -14,3 +14,19 @@ short_description: 'SDSC Hackathon - Project 10. '
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
 
 app.py is the one and only app
+
+
+## Install
+
+```
+git clone git@hf.co:spaces/Saving-Willy/saving-willy-space
+
+pip install -r requirements.txt 
+```
+
+```
+streamlit run app.py 
+```
+
+
+have a lot of fun
