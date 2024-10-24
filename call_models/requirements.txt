@@ -2,3 +2,7 @@ transformers
 streamlit
 huggingface_hub
 torch
+
+# for ceatatean
+pytorch_lightning 
+timm
