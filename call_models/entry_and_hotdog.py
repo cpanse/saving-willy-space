@@ -2,14 +2,15 @@ import streamlit as st
 from PIL import Image
 import datetime
 import re
-#import os
+import os
 import json
 
 import hashlib
 
 from transformers import pipeline
+from transformers import AutoModelForImageClassification
 
-
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 allowed_image_types = ['webp']
 #allowed_image_types = ['jpg', 'jpeg', 'png', 'webp']
@@ -111,8 +112,26 @@ if st.sidebar.button("Upload"):
     
     st.write(f"full dict of data: {json.dumps(submitted_data)}")
     
-print(f"[D] full data: {full_data}")
+print(f"[D] full data: {st.session_state.full_data}")
     
+if st.button("Get c`etacean- prediction")    :
+    #pipe = pipeline("image-classification", model="Saving-Willy/cetacean-classifier", trust_remote_code=True)
+    cetacean_classifier = AutoModelForImageClassification.from_pretrained("Saving-Willy/cetacean-classifier", trust_remote_code=True)
+    st.title("Cetacean? Or Not?")
+    if uploaded_filename is not None:
+        col1, col2 = st.columns(2)
+
+        # I think I'm repeating this, for now just let it slide. Fix after prototype 1 done
+        image = Image.open(uploaded_filename)
+        col1.image(image, use_column_width=True)
+        out = cetacean_classifier(image) # get top 3
+        
+        
+        print(out)        
+        st.write(f"model outputs: {out} |{len(out)}")
+  
+    pass
+
 if st.button("Get Hotdog Prediction"):   
     
     pipeline = pipeline(task="image-classification", model="julien-c/hotdog-not-hotdog")
