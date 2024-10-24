@@ -15,6 +15,19 @@ os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 allowed_image_types = ['webp']
 #allowed_image_types = ['jpg', 'jpeg', 'png', 'webp']
 
+#create cache object for the data dict
+#@st.cache(allow_output_mutation=True)
+#def FullInfo():
+#    return {}
+
+# initialize the data dict
+if "full_data" not in st.session_state:
+    st.session_state.full_data = {}
+
+
+
+
+
 
 # Function to validate email address
 def is_valid_email(email):
@@ -34,6 +47,8 @@ def get_image_datetime(image_file):
     except Exception as e:
         st.warning("Could not extract date from image metadata.")
     return None
+
+#full_data = FullInfo()
 
 # Streamlit app
 st.sidebar.title("Input Form")
@@ -85,7 +100,6 @@ else:
 date_option = st.sidebar.date_input("Date", value=date_value)
 time_option = st.sidebar.time_input("Time", time_value)
 
-full_data = {}
 
 # Display submitted data
 if st.sidebar.button("Upload"):
@@ -101,7 +115,10 @@ if st.sidebar.button("Upload"):
         "image_md5": hashlib.md5(uploaded_filename.read()).hexdigest() if uploaded_filename else None,
         
     }
-    full_data.update(**submitted_data)
+    #full_data.update(**submitted_data)
+    for k, v in submitted_data.items():
+        st.session_state.full_data[k] = v
+        
     
     st.write("Submitted Data:")
     st.write(f"Latitude: {submitted_data['latitude']}")
@@ -152,11 +169,12 @@ if st.button("Get Hotdog Prediction"):
         for p in predictions:
             col2.subheader(f"{ p['label'] }: { round(p['score'] * 100, 1)}%")
             if first:
-                full_data['predicted_class'] = p['label']
-                full_data['predicted_score'] = round(p['score'] * 100, 1)
+                st.session_state.full_data['predicted_class'] = p['label']
+                st.session_state.full_data['predicted_score'] = round(p['score'] * 100, 1)
                 first = False
         
-        st.write(f"Submitted Data: {json.dumps(full_data)}")
+        st.write(f"Submitted Data: {json.dumps(st.session_state.full_data)}")
         
-print(f"[D] full data after inference: {full_data}")
+print(f"[D] full data after inference: {st.session_state.full_data}")
+        
         
