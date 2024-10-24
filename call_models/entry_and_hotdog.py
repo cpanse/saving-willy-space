@@ -4,6 +4,7 @@ import datetime
 import re
 import os
 import json
+import pandas as pd
 
 import hashlib
 
@@ -24,7 +25,19 @@ allowed_image_types = ['webp']
 if "full_data" not in st.session_state:
     st.session_state.full_data = {}
 
+# initialize a log list in session state
+if "log" not in st.session_state:
+    st.session_state.log = st.table([f"{datetime.datetime.now()}", "- App started."])
 
+# an arbitrary set of defaults so testing is less painful...
+# ideally we add in some randomization to the defaults
+metadata = {
+    "latitude": 23.5,
+    "longitude": 44,
+    "author_email": "super@whale.org",
+    "date": None,
+    "time": None,
+}
 
 
 
@@ -48,10 +61,16 @@ def get_image_datetime(image_file):
         st.warning("Could not extract date from image metadata.")
     return None
 
-#full_data = FullInfo()
 
 # Streamlit app
-st.sidebar.title("Input Form")
+tab_inference, tab_map, tab_data, tab_log = st.tabs(["Inference", "Map", "Data", "Log"])
+
+#stat = st.info("Hello whale gang")
+#st.session_state.log.add_rows([f"{datetime.datetime.now()}", "Hello whale gang."])
+#with tab_log:
+
+
+st.sidebar.title("Input image and data")
 
 # 1. Image Selector
 uploaded_filename = st.sidebar.file_uploader("Upload an image", type=allowed_image_types)
@@ -65,14 +84,6 @@ if uploaded_filename is not None:
     # Extract and display image date-time
     image_datetime = get_image_datetime(uploaded_filename)
     print(f"[D] image date extracted as {image_datetime}")
-
-metadata = {
-    "latitude": 23.5,
-    "longitude": 44,
-    "author_email": "super@whale.org",
-    "date": None,
-    "time": None,
-}
 
 # 2. Latitude Entry Box
 latitude = st.sidebar.text_input("Latitude", metadata.get('latitude', ""))
@@ -120,23 +131,33 @@ if st.sidebar.button("Upload"):
         st.session_state.full_data[k] = v
         
     
-    st.write("Submitted Data:")
-    st.write(f"Latitude: {submitted_data['latitude']}")
-    st.write(f"Longitude: {submitted_data['longitude']}")
-    st.write(f"Author Email: {submitted_data['author_email']}")
-    st.write(f"Date: {submitted_data['date']}")
-    st.write(f"Time: {submitted_data['time']}")
+    if 0: # ugly... 
+        st.write("Submitted Data:")
+        st.write(f"Latitude: {submitted_data['latitude']}")
+        st.write(f"Longitude: {submitted_data['longitude']}")
+        st.write(f"Author Email: {submitted_data['author_email']}")
+        st.write(f"Date: {submitted_data['date']}")
+        st.write(f"Time: {submitted_data['time']}")
+        
+    #st.write(f"full dict of data: {json.dumps(submitted_data)}")
+    tab_inference.info(f"{st.session_state.full_data}")
+
+    df = pd.DataFrame(submitted_data, index=[0])
+    with tab_data:
+        st.table(df)
     
-    st.write(f"full dict of data: {json.dumps(submitted_data)}")
     
-print(f"[D] full data: {st.session_state.full_data}")
+
+#msg = f"[D] full data: {st.session_state.full_data}"
+#print(msg)
+#st.info(msg)
     
-if st.button("Get c`etacean- prediction")    :
+if tab_inference.button("Get cetacean- prediction")    :
     #pipe = pipeline("image-classification", model="Saving-Willy/cetacean-classifier", trust_remote_code=True)
     cetacean_classifier = AutoModelForImageClassification.from_pretrained("Saving-Willy/cetacean-classifier", trust_remote_code=True)
-    st.title("Cetacean? Or Not?")
+    tab_inference.title("Cetacean? Or Not?")
     if uploaded_filename is not None:
-        col1, col2 = st.columns(2)
+        col1, col2 = tab_inference.columns(2)
 
         # I think I'm repeating this, for now just let it slide. Fix after prototype 1 done
         image = Image.open(uploaded_filename)
@@ -145,19 +166,19 @@ if st.button("Get c`etacean- prediction")    :
         
         
         print(out)        
-        st.write(f"model outputs: {out} |{len(out)}")
+        tab_inference.write(f"model outputs: {out} |{len(out)}")
   
     pass
 
-if st.button("Get Hotdog Prediction"):   
+if tab_inference.button("Get Hotdog Prediction"):   
     
     pipeline = pipeline(task="image-classification", model="julien-c/hotdog-not-hotdog")
-    st.title("Hot Dog? Or Not?")
+    tab_inference.title("Hot Dog? Or Not?")
 
     #file_name = st.file_uploader("Upload a hot dog candidate image")
 
     if uploaded_filename is not None:
-        col1, col2 = st.columns(2)
+        col1, col2 = tab_inference.columns(2)
 
         # I think I'm repeating this, for now just let it slide. Fix after prototype 1 done
         image = Image.open(uploaded_filename)
@@ -173,7 +194,7 @@ if st.button("Get Hotdog Prediction"):
                 st.session_state.full_data['predicted_score'] = round(p['score'] * 100, 1)
                 first = False
         
-        st.write(f"Submitted Data: {json.dumps(st.session_state.full_data)}")
+        tab_inference.write(f"Submitted Data: {json.dumps(st.session_state.full_data)}")
         
 print(f"[D] full data after inference: {st.session_state.full_data}")
         
