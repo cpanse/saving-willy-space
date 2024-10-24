@@ -1,25 +1,35 @@
-import streamlit as st
 from PIL import Image
 import datetime
 import re
 import os
 import json
-import pandas as pd
-
 import hashlib
+import pandas as pd
+import streamlit as st
+from streamlit_folium import st_folium, folium_static
+import folium
+
 
 from transformers import pipeline
 from transformers import AutoModelForImageClassification
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
+USE_BASIC_MAP = False
 allowed_image_types = ['webp']
 #allowed_image_types = ['jpg', 'jpeg', 'png', 'webp']
 
-#create cache object for the data dict
-#@st.cache(allow_output_mutation=True)
-#def FullInfo():
-#    return {}
+tile_sets = [
+    'Open Street Map',
+    #'Stamen Terrain',
+    #'Stamen Toner',
+    'Esri Ocean',
+    'Esri Images',
+    'Stamen Watercolor',
+    'CartoDB Positron',
+    #'CartoDB Dark_Matter'
+]
+
 
 # initialize the data dict
 if "full_data" not in st.session_state:
@@ -39,6 +49,54 @@ metadata = {
     "time": None,
 }
 
+_map_data = {'name': {
+    0: 'matterhorn',
+  1: 'zinalrothorn',
+  2: 'alphubel',
+  3: 'allalinhorn',
+  4: 'weissmies',
+  5: 'lagginhorn',
+  6: 'lenzspitze',
+  10: 'strahlhorn',
+  11: 'parrotspitze'},
+ 'lat': {0: 45.9764263,
+  1: 46.0648271,
+  2: 46.0628767,
+  3: 46.0460858,
+  4: 46.127633,
+  5: 46.1570635,
+  6: 46.1045505,
+  10: 46.0131498,
+  11: 45.9197881},
+ 'lon': {0: 7.6586024,
+  1: 7.6901238,
+  2: 7.8638549,
+  3: 7.8945842,
+  4: 8.0120569,
+  5: 8.0031044,
+  6: 7.8686568,
+  10: 7.9021703,
+  11: 7.8710552},
+ 'height': {0: 4181.0,
+  1: 3944.0,
+  2: 4174.0,
+  3: 3940.0,
+  4: 3983.0,
+  5: 3916.0,
+  6: 4255.0,
+  10: 4072.0,
+  11: 4419.0},
+ 'color': {0: '#aa0000',
+  1: '#aa0000',
+  2: '#aa0000',
+  3: '#aa0000',
+  4: '#aa0000',
+  5: '#aa0000',
+  6: '#aa0000',
+  10: '#00aa00',
+  11: '#aa0000'},
+ 'size': {0: 30, 1: 30, 2: 30, 3: 30, 4: 30, 5: 30, 6: 30, 10: 500, 11: 30}
+}
 
 
 
@@ -60,6 +118,71 @@ def get_image_datetime(image_file):
     except Exception as e:
         st.warning("Could not extract date from image metadata.")
     return None
+
+
+# Define a function to create a map with the selected tile
+def create_map2(tile_name, location):
+    # can't get the tile layer to work so nicely, fall back to explicit
+    # itle provider method
+    if 'Positr' in tile_name:
+        tile_xyz = 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
+        tile_attr = '<a href="https://opentopomap.org/">Open Topo Map</a>'
+    
+    elif 'Watercolor' in tile_name:
+        #https://tiles.stadiamaps.com/tiles/{variant}/{z}/{x}/{y}.{ext}
+        tile_xyz = 'https://tiles.stadiamaps.com/tiles/watercolor/{z}/{x}/{y}.jpg'
+        tile_attr = '<a href="https://stadiamaps.com/">Stadia Maps</a>'
+        
+    elif 'Esri' in tile_name:
+        tile_xyz = 'https://server.arcgisonline.com/ArcGIS/rest/services/{variant}/MapServer/tile/{z}/{y}/{x}'
+        tile_attr = 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    
+    else:
+        tile_xyz = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+        tile_attr = '<a href="https://openstreetmap.org">Open Street Map</a>'
+        
+        
+    m = folium.Map(location=visp_loc, zoom_start=9, 
+                   tiles=tile_xyz, attr=tile_attr)
+    return m
+
+    
+
+
+def create_map(tile_name, location):
+    # https://xyzservices.readthedocs.io/en/stable/gallery.html 
+    # get teh attribtuions from here once we pick the 2-3-4 options 
+    m = folium.Map(location=location, zoom_start=7)
+
+    attr = ""
+    if tile_name == 'Open Street Map':
+        #folium.TileLayer('openstreetmap').add_to(m)
+        pass
+
+    #Esri.OceanBasemap
+    elif tile_name == 'Esri Ocean':
+        attr = "Esri"
+        folium.TileLayer('Esri.OceanBasemap', attr=attr).add_to(m)
+
+    elif tile_name == 'Esri Images':
+        attr = "Esri &mdash; Source: Esri, i-cubed, USDA"
+        #folium.TileLayer('stamenterrain', attr=attr).add_to(m)
+        folium.TileLayer('Esri.WorldImagery', attr=attr).add_to(m)
+    elif tile_name == 'Stamen Toner':
+        attr = "Stamen"
+        folium.TileLayer('stamentoner', attr=attr).add_to(m)
+    elif tile_name == 'Stamen Watercolor':
+        attr = "Stamen"
+        folium.TileLayer('Stadia.StamenWatercolor', attr=attr).add_to(m)
+    elif tile_name == 'CartoDB Positron':
+        folium.TileLayer('cartodb positron').add_to(m)
+    elif tile_name == 'CartoDB Dark_Matter':
+        folium.TileLayer('cartodb dark_matter').add_to(m)
+
+    #folium.LayerControl().add_to(m)
+    return m
+
+
 
 
 # Streamlit app
@@ -96,6 +219,65 @@ if author_email and not is_valid_email(author_email):
     st.sidebar.error("Please enter a valid email address.")
 
 
+with tab_map:
+    _df = pd.DataFrame(_map_data)
+    st.markdown("# :whale: :whale: Cetaceans :red[& friends] :balloon:")
+    show_points = st.toggle("Show Points", True)
+    basic_map = st.toggle("Use Basic Map", False)
+    
+    visp_loc = 46.295833, 7.883333
+    # do a default render (should just be once but streamlit passes many times?)
+    #map_ = create_map('Esri Ocean', visp_loc)
+    ## and render it
+    #st_data = st_folium(map_, width=725)
+
+    if basic_map:
+        st.map(_df, latitude='lat', longitude='lon', color='color', size='size', zoom=7)
+    else:
+        # setup a dropdown to pick tiles
+        # and render with folium instead
+        selected_tile = st.selectbox("Choose a tile set", tile_sets)
+        #st.info(f"Selected tile: {selected_tile}") 
+        # don't get why the default selection doesn't get renderd.
+        # generate a layer
+        map_ = create_map(selected_tile, visp_loc)
+        # and render it
+        #tile_xyz = 'https://tile.opentopomap.org/{z}/{x}/{y}.png'
+        #tile_attr = '<a href="https://opentopomap.org/">Open Topo Map</a>'
+
+        if show_points:
+            folium.Marker(
+                location=visp_loc,
+                popup="Visp",
+                tooltip="Visp",
+                icon=folium.Icon(color='blue', icon='info-sign')
+            ).add_to(map_)
+            
+            for i, row in _df.iterrows():
+                c = 'red'
+                if row['name'] == 'strahlhorn':
+                    c = 'green'
+                kw = {"prefix": "fa", "color": c, "icon": "mountain-sun"}
+                folium.Marker(
+                    location=[row['lat'], row['lon']],
+                    popup=f"{row['name']} ({row['height']} m)",
+                    tooltip=row['name'],
+                    icon=folium.Icon(**kw)
+                ).add_to(map_)
+                #st.info(f"Added marker for {row['name']} {row['lat']} {row['lon']}")
+
+        
+        #folium_static(map_)
+        st_data = st_folium(map_, width=725)
+                
+                
+
+with tab_log:
+    #st.table(st.session_state.log)
+    st.markdown("Coming soon! :construction:")
+    
+with tab_data:
+    st.markdown("Coming later hope! :construction:")
 
 
 # 5. date/time
