@@ -2,5 +2,7 @@ streamlit
 folium
 streamlit-folium
 huggingface_hub
+transformers
 Pillow
 piexif
+exifread
