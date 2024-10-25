@@ -1,4 +1,6 @@
 streamlit
 folium
 streamlit-folium
-
+huggingface_hub
+Pillow
+piexif
